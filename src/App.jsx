@@ -174,31 +174,29 @@ function App() {
   }, []);
 
   async function entrarComGoogle() {
-  if (!supabase) {
-    setAuthMensagem("SUPABASE NÃO ESTÁ CONFIGURADO.");
-    return;
-  }
-
-  setAuthMensagem("");
-  setAuthProcessando(true);
-
-  try {
-    const { error } = await supabase.auth.signInWithOAuth({
-      provider: "google",
-      options: {
-        redirectTo: window.location.origin,
-      },
-    });
-
-    if (error) {
-      throw error;
+    if (!supabase) {
+      setAuthMensagem("SUPABASE NÃO ESTÁ CONFIGURADO.");
+      return;
     }
-  } catch (error) {
-    console.error("Erro no login com Google:", error);
-    setAuthMensagem(`ERRO NO LOGIN GOOGLE: ${error.message}`);
-    setAuthProcessando(false);
+
+    setAuthMensagem("");
+    setAuthProcessando(true);
+
+    try {
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: "google",
+        options: {
+          redirectTo: window.location.origin,
+        },
+      });
+
+      if (error) throw error;
+    } catch (error) {
+      console.error("Erro no login com Google:", error);
+      setAuthMensagem(`ERRO NO LOGIN GOOGLE: ${error.message}`);
+      setAuthProcessando(false);
+    }
   }
-}
 
   async function enviarFormularioAuth(event) {
     event.preventDefault();
@@ -959,6 +957,40 @@ function App() {
             >
               Produtos
             </a>
+
+            {/* Acesso à conta no menu mobile */}
+            <div className="mt-2 border-t border-steel/60 pt-4">
+              {sessao ? (
+                <div className="grid gap-3">
+                  <span className="text-xs text-chalk/60 break-all">
+                    {sessao.user?.email}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      setMenuAberto(false);
+                      await sairDaConta();
+                    }}
+                    className="w-full border border-steel px-4 py-3 text-left font-mono text-xs hover:border-forge transition-colors"
+                  >
+                    SAIR DA CONTA
+                  </button>
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setMenuAberto(false);
+                    setAuthMensagem("");
+                    setModoAuth("login");
+                    setAuthAberta(true);
+                  }}
+                  className="w-full bg-forge px-4 py-3 text-left font-mono text-sm font-semibold text-iron hover:bg-rust transition-colors"
+                >
+                  ENTRAR / CRIAR CONTA
+                </button>
+              )}
+            </div>
           </nav>
         )}
       </header>
@@ -1610,10 +1642,10 @@ function App() {
           MODAL DE LOGIN / CADASTRO
       ====================================================== */}
       {authAberta && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center px-4 py-8">
+        <div className="fixed inset-0 z-[100] flex items-start sm:items-center justify-center overflow-y-auto px-4 py-4 sm:py-8">
           <button type="button" aria-label="Fechar autenticação" onClick={() => setAuthAberta(false)}
-            className="absolute inset-0 bg-black/75" />
-          <div className="relative z-10 w-full max-w-md border border-steel bg-iron p-6 sm:p-8 shadow-2xl">
+            className="fixed inset-0 bg-black/75" />
+          <div className="relative z-10 my-auto w-full max-w-md max-h-[calc(100dvh-2rem)] overflow-y-auto border border-steel bg-iron p-5 sm:p-8 shadow-2xl">
             <div className="flex items-start justify-between gap-4 mb-6">
               <div>
                 <p className="font-mono text-[10px] tracking-[0.25em] text-forge mb-2">FORJA / CONTA</p>
