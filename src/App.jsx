@@ -174,9 +174,13 @@ function App() {
   }, []);
 
   async function entrarComGoogle() {
-  setErro("");
-  setSucesso("");
-  setLoading(true);
+  if (!supabase) {
+    setAuthMensagem("SUPABASE NÃO ESTÁ CONFIGURADO.");
+    return;
+  }
+
+  setAuthMensagem("");
+  setAuthProcessando(true);
 
   try {
     const { error } = await supabase.auth.signInWithOAuth({
@@ -186,10 +190,13 @@ function App() {
       },
     });
 
-    if (error) throw error;
-  } catch (e) {
-    setErro(e?.message || "Não foi possível entrar com Google.");
-    setLoading(false);
+    if (error) {
+      throw error;
+    }
+  } catch (error) {
+    console.error("Erro no login com Google:", error);
+    setAuthMensagem(ERRO NO LOGIN GOOGLE: ${error.message});
+    setAuthProcessando(false);
   }
 }
 
