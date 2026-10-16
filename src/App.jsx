@@ -174,23 +174,24 @@ function App() {
   }, []);
 
   async function entrarComGoogle() {
-    if (!supabase) {
-      setAuthMensagem("SUPABASE NÃO ESTÁ CONFIGURADO.");
-      setAuthAberta(true);
-      return;
-    }
+  setErro("");
+  setSucesso("");
+  setLoading(true);
 
-    setAuthProcessando(true);
-    setAuthMensagem("");
+  try {
     const { error } = await supabase.auth.signInWithOAuth({
       provider: "google",
-      options: { redirectTo: window.location.origin },
+      options: {
+        redirectTo: window.location.origin,
+      },
     });
-    if (error) {
-      setAuthMensagem(`ERRO AO ENTRAR COM GOOGLE: ${error.message}`);
-      setAuthProcessando(false);
-    }
+
+    if (error) throw error;
+  } catch (e) {
+    setErro(e?.message || "Não foi possível entrar com Google.");
+    setLoading(false);
   }
+}
 
   async function enviarFormularioAuth(event) {
     event.preventDefault();
