@@ -195,7 +195,7 @@ function App() {
     }
   } catch (error) {
     console.error("Erro no login com Google:", error);
-    setAuthMensagem(ERRO NO LOGIN GOOGLE: ${error.message});
+    setAuthMensagem(`ERRO NO LOGIN GOOGLE: ${error.message}`);
     setAuthProcessando(false);
   }
 }
