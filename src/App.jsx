@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { Camera, CameraResultType, CameraSource } from "@capacitor/camera";
 import { supabase } from "./supabaseClient";
 
 const categoryInfo = {
@@ -137,6 +138,9 @@ function App() {
   });
   const [salvandoProduto, setSalvandoProduto] = useState(false);
   const [mensagemProduto, setMensagemProduto] = useState("");
+  const [fotoCapturada, setFotoCapturada] = useState("");
+  const [carregandoFoto, setCarregandoFoto] = useState(false);
+  const [erroFoto, setErroFoto] = useState("");
 
 
   // =========================================================
@@ -450,6 +454,37 @@ function App() {
       ...atual,
       [name]: value,
     }));
+  }
+
+  async function abrirCameraGaleria() {
+    if (carregandoFoto) return;
+
+    setCarregandoFoto(true);
+    setErroFoto("");
+    try {
+      const foto = await Camera.getPhoto({
+        quality: 85,
+        allowEditing: false,
+        resultType: CameraResultType.Uri,
+        source: CameraSource.Prompt,
+        promptLabelHeader: "Adicionar imagem",
+        promptLabelPhoto: "Escolher da galeria",
+        promptLabelPicture: "Tirar foto",
+        promptLabelCancel: "Cancelar",
+      });
+
+      if (foto?.webPath) {
+        setFotoCapturada(foto.webPath);
+        setErroFoto("");
+      } else {
+        setErroFoto("Não foi possível carregar a imagem selecionada.");
+      }
+    } catch (error) {
+      console.info("Câmera/galeria cancelada ou indisponível:", error);
+      setErroFoto("Ação cancelada. Você pode tentar novamente quando quiser.");
+    } finally {
+      setCarregandoFoto(false);
+    }
   }
 
   function limparFormularioProduto() {
@@ -1226,6 +1261,49 @@ function App() {
               placeholder="Imagem (ex.: img/produto.jpg)"
               className="md:col-span-2 bg-iron border border-steel px-4 py-3 text-sm outline-none focus:border-forge"
             />
+
+            <div className="md:col-span-2 border border-steel bg-iron/60 p-4 space-y-3">
+              <div>
+                <p className="font-mono text-xs tracking-widest text-forge">FOTO DO DISPOSITIVO</p>
+                <p className="text-xs text-chalk/60 mt-1">
+                  Tire uma foto ou escolha uma imagem da galeria para visualizar aqui.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={abrirCameraGaleria}
+                disabled={carregandoFoto}
+                className="border border-forge px-4 py-3 text-sm font-semibold hover:bg-forge hover:text-iron transition-colors disabled:opacity-50"
+              >
+                {carregandoFoto ? "ABRINDO CÂMERA / GALERIA..." : "TIRAR FOTO / GALERIA"}
+              </button>
+              {erroFoto && (
+                <p role="status" aria-live="polite" className="text-xs text-chalk/70 break-words">
+                  {erroFoto}
+                </p>
+              )}
+              {fotoCapturada && (
+                <div className="space-y-2">
+                  <p className="font-mono text-[10px] tracking-widest text-forge">PRÉ-VISUALIZAÇÃO</p>
+                  <img
+                    src={fotoCapturada}
+                    alt="Imagem capturada ou selecionada"
+                    className="max-h-72 w-full max-w-sm rounded border border-steel object-contain object-left"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setFotoCapturada("")}
+                    className="border border-steel px-3 py-2 text-xs hover:border-forge transition-colors"
+                  >
+                    REMOVER PRÉ-VISUALIZAÇÃO
+                  </button>
+                </div>
+              )}
+              <p className="text-[11px] text-chalk/40">
+                A pré-visualização é temporária. Para salvar a foto permanentemente como imagem do produto,
+                é necessário enviá-la ao Supabase Storage.
+              </p>
+            </div>
 
             <textarea
               name="descricao"
