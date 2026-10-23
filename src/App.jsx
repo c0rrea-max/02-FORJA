@@ -138,6 +138,8 @@ function App() {
   });
   const [salvandoProduto, setSalvandoProduto] = useState(false);
   const [mensagemProduto, setMensagemProduto] = useState("");
+
+  // CÂMERA / GALERIA DO DISPOSITIVO
   const [fotoCapturada, setFotoCapturada] = useState("");
   const [carregandoFoto, setCarregandoFoto] = useState(false);
   const [erroFoto, setErroFoto] = useState("");
@@ -454,37 +456,6 @@ function App() {
       ...atual,
       [name]: value,
     }));
-  }
-
-  async function abrirCameraGaleria() {
-    if (carregandoFoto) return;
-
-    setCarregandoFoto(true);
-    setErroFoto("");
-    try {
-      const foto = await Camera.getPhoto({
-        quality: 85,
-        allowEditing: false,
-        resultType: CameraResultType.Uri,
-        source: CameraSource.Prompt,
-        promptLabelHeader: "Adicionar imagem",
-        promptLabelPhoto: "Escolher da galeria",
-        promptLabelPicture: "Tirar foto",
-        promptLabelCancel: "Cancelar",
-      });
-
-      if (foto?.webPath) {
-        setFotoCapturada(foto.webPath);
-        setErroFoto("");
-      } else {
-        setErroFoto("Não foi possível carregar a imagem selecionada.");
-      }
-    } catch (error) {
-      console.info("Câmera/galeria cancelada ou indisponível:", error);
-      setErroFoto("Ação cancelada. Você pode tentar novamente quando quiser.");
-    } finally {
-      setCarregandoFoto(false);
-    }
   }
 
   function limparFormularioProduto() {
@@ -815,6 +786,43 @@ function App() {
       window.removeEventListener("resize", atualizarBarra);
     };
   }, []);
+
+  // =========================================================
+  // CÂMERA / GALERIA — CAPTURA COM TRATAMENTO DE CANCELAMENTO
+  // =========================================================
+
+  async function abrirCameraGaleria() {
+    if (carregandoFoto) return;
+
+    setErroFoto("");
+    setCarregandoFoto(true);
+
+    try {
+      const foto = await Camera.getPhoto({
+        quality: 85,
+        allowEditing: false,
+        resultType: CameraResultType.Uri,
+        source: CameraSource.Prompt,
+        promptLabelHeader: "Adicionar imagem",
+        promptLabelPhoto: "Escolher da galeria",
+        promptLabelPicture: "Tirar foto",
+        promptLabelCancel: "Cancelar",
+      });
+
+      if (foto?.webPath) {
+        setFotoCapturada(foto.webPath);
+        setErroFoto("");
+      } else {
+        setErroFoto("Não foi possível carregar a imagem selecionada.");
+      }
+    } catch (error) {
+      // Cancelar a câmera/galeria é um fluxo válido: não interrompe o React.
+      console.info("Câmera/galeria cancelada ou indisponível:", error);
+      setErroFoto("Ação cancelada. Você pode tentar novamente quando quiser.");
+    } finally {
+      setCarregandoFoto(false);
+    }
+  }
 
   // =========================================================
   // CATEGORIAS PARA EXIBIÇÃO
@@ -1262,6 +1270,7 @@ function App() {
               className="md:col-span-2 bg-iron border border-steel px-4 py-3 text-sm outline-none focus:border-forge"
             />
 
+            {/* Recurso nativo de câmera/galeria */}
             <div className="md:col-span-2 border border-steel bg-iron/60 p-4 space-y-3">
               <div>
                 <p className="font-mono text-xs tracking-widest text-forge">FOTO DO DISPOSITIVO</p>
@@ -1269,6 +1278,7 @@ function App() {
                   Tire uma foto ou escolha uma imagem da galeria para visualizar aqui.
                 </p>
               </div>
+
               <button
                 type="button"
                 onClick={abrirCameraGaleria}
@@ -1277,11 +1287,13 @@ function App() {
               >
                 {carregandoFoto ? "ABRINDO CÂMERA / GALERIA..." : "TIRAR FOTO / GALERIA"}
               </button>
+
               {erroFoto && (
                 <p role="status" aria-live="polite" className="text-xs text-chalk/70 break-words">
                   {erroFoto}
                 </p>
               )}
+
               {fotoCapturada && (
                 <div className="space-y-2">
                   <p className="font-mono text-[10px] tracking-widest text-forge">PRÉ-VISUALIZAÇÃO</p>
