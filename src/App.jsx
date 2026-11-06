@@ -1,5 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Camera, CameraResultType, CameraSource } from "@capacitor/camera";
+import { LocalNotifications } from "@capacitor/local-notifications";
+import { Capacitor } from "@capacitor/core";
 import { supabase } from "./supabaseClient";
 
 const categoryInfo = {
@@ -143,6 +145,86 @@ function App() {
   const [fotoCapturada, setFotoCapturada] = useState("");
   const [carregandoFoto, setCarregandoFoto] = useState(false);
   const [erroFoto, setErroFoto] = useState("");
+  const [permissaoNotificacao, setPermissaoNotificacao] = useState("verificando");
+  const [statusNotificacao, setStatusNotificacao] = useState("");
+  const [processandoNotificacao, setProcessandoNotificacao] = useState(false);
+  const [segundosLembrete, setSegundosLembrete] = useState(10);
+
+  async function verificarPermissaoNotificacao() {
+    if (!Capacitor.isNativePlatform()) {
+      setPermissaoNotificacao("disponível no aplicativo Android/iOS");
+      return null;
+    }
+    const resultado = await LocalNotifications.checkPermissions();
+    setPermissaoNotificacao(resultado.display);
+    return resultado.display;
+  }
+
+  async function solicitarPermissaoNotificacao() {
+    setProcessandoNotificacao(true);
+    setStatusNotificacao("");
+    try {
+      let display = await verificarPermissaoNotificacao();
+      if (display !== "granted" && Capacitor.isNativePlatform()) {
+        const resultado = await LocalNotifications.requestPermissions();
+        display = resultado.display;
+        setPermissaoNotificacao(display);
+      }
+      setStatusNotificacao(display === "granted"
+        ? "Permissão de notificações concedida."
+        : Capacitor.isNativePlatform()
+          ? "Permissão não concedida. Verifique as configurações do sistema."
+          : "Abra o app nativo em um dispositivo para solicitar a permissão do sistema.");
+    } catch (error) {
+      setStatusNotificacao(`Não foi possível verificar a permissão: ${error.message}`);
+    } finally {
+      setProcessandoNotificacao(false);
+    }
+  }
+
+  async function notificarTreino(agendada = false) {
+    setProcessandoNotificacao(true);
+    setStatusNotificacao("");
+    try {
+      let display = await verificarPermissaoNotificacao();
+      if (display !== "granted" && Capacitor.isNativePlatform()) {
+        display = (await LocalNotifications.requestPermissions()).display;
+        setPermissaoNotificacao(display);
+      }
+      if (Capacitor.isNativePlatform() && display !== "granted") {
+        setStatusNotificacao("Ative as notificações nas configurações do dispositivo para continuar.");
+        return;
+      }
+      const id = agendada ? 20261106 : 20261105;
+      const schedule = agendada
+        ? { at: new Date(Date.now() + Number(segundosLembrete) * 1000) }
+        : { at: new Date(Date.now() + 1000) };
+      await LocalNotifications.schedule({ notifications: [{
+        id,
+        title: agendada ? "FORJA | Hora do treino" : "FORJA | Treino confirmado",
+        body: agendada
+          ? "Seu lembrete de treino está pronto. Vista-se e venha para a FORJA!"
+          : "Bora treinar? Sua próxima evolução começa agora. Não esqueça de se hidratar!",
+        schedule,
+      }] });
+      setStatusNotificacao(agendada
+        ? `Lembrete agendado para daqui a ${segundosLembrete} segundos.`
+        : "Notificação de treino enviada! (O sistema pode exibi-la em alguns instantes.)");
+    } catch (error) {
+      setStatusNotificacao(`Erro ao enviar a notificação: ${error.message}`);
+    } finally {
+      setProcessandoNotificacao(false);
+    }
+  }
+
+  async function cancelarLembretes() {
+    try {
+      await LocalNotifications.cancel({ notifications: [{ id: 20261106 }] });
+      setStatusNotificacao("Lembrete agendado cancelado.");
+    } catch (error) {
+      setStatusNotificacao(`Não foi possível cancelar: ${error.message}`);
+    }
+  }
 
 
   // =========================================================
@@ -151,6 +233,13 @@ function App() {
 
   useEffect(() => {
     carregarDados();
+  }, []);
+
+  useEffect(() => {
+    verificarPermissaoNotificacao().catch((error) => {
+      setPermissaoNotificacao("erro ao consultar");
+      setStatusNotificacao(`Erro ao consultar permissão: ${error.message}`);
+    });
   }, []);
 
   // Recupera a sessão atual e acompanha login/logout em tempo real.
@@ -1665,6 +1754,28 @@ function App() {
       {/* =====================================================
           FOOTER
       ====================================================== */}
+
+      <section id="lembretes" className="max-w-7xl mx-auto px-5 lg:px-8 py-16 border-t border-steel/60">
+        <div className="max-w-3xl mx-auto border border-steel bg-plate p-6 sm:p-8">
+          <p className="font-mono text-xs tracking-[0.2em] text-forge mb-2">FORJA / LEMBRETES</p>
+          <h2 className="font-display text-3xl mb-2">SEU TREINO NÃO ESPERA</h2>
+          <p className="text-chalk/60 text-sm mb-6">Permissão de notificações: <span className="text-forge">{permissaoNotificacao}</span></p>
+          <div className="flex flex-wrap gap-3 mb-5">
+            <button type="button" disabled={processandoNotificacao} onClick={solicitarPermissaoNotificacao} className="border border-steel px-4 py-3 text-sm hover:border-forge disabled:opacity-50">VERIFICAR / SOLICITAR PERMISSÃO</button>
+            <button type="button" disabled={processandoNotificacao} onClick={() => notificarTreino(false)} className="bg-forge text-iron font-semibold px-4 py-3 text-sm hover:bg-rust disabled:opacity-50">LEMBRAR AGORA</button>
+          </div>
+          <div className="flex flex-wrap items-center gap-3">
+            <label htmlFor="lembrete-segundos" className="text-sm text-chalk/70">Agendar em</label>
+            <select id="lembrete-segundos" value={segundosLembrete} onChange={(event) => setSegundosLembrete(Number(event.target.value))} className="bg-iron border border-steel px-3 py-2 text-sm">
+              <option value={5}>5 segundos</option><option value={10}>10 segundos</option><option value={15}>15 segundos</option>
+            </select>
+            <button type="button" disabled={processandoNotificacao} onClick={() => notificarTreino(true)} className="border border-forge text-forge px-4 py-2 text-sm hover:bg-forge hover:text-iron disabled:opacity-50">AGENDAR TREINO</button>
+            <button type="button" onClick={cancelarLembretes} className="text-chalk/50 px-3 py-2 text-sm hover:text-forge">Cancelar agendamento</button>
+          </div>
+          {statusNotificacao && <p role="status" aria-live="polite" className="mt-5 border border-steel p-3 text-xs font-mono text-forge break-words">{statusNotificacao}</p>}
+          <p className="mt-4 text-xs text-chalk/40">No Android 13 ou superior, aceite a solicitação do sistema. Notificações nativas precisam do app instalado no dispositivo; no navegador, o plugin não pode solicitar a permissão do Android.</p>
+        </div>
+      </section>
 
       <footer className="max-w-7xl mx-auto px-5 lg:px-8 py-14 flex flex-col md:flex-row justify-between gap-8 border-t border-steel/60">
         <div>
