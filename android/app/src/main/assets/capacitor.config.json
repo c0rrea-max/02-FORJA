@@ -1,5 +1,11 @@
 {
 	"appId": "com.forja.academia",
-	"appName": "Forja ",
-	"webDir": "www"
+	"appName": "FORJA",
+	"webDir": "www",
+	"plugins": {
+		"SplashScreen": {
+			"backgroundColor": "#17140F",
+			"showSpinner": false
+		}
+	}
 }

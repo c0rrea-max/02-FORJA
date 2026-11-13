@@ -13,6 +13,7 @@
   "license": "ISC",
   "description": "",
   "devDependencies": {
+    "@capacitor/assets": "^4.0.0",
     "@capacitor/cli": "^8.5.0",
     "@capacitor/core": "^8.5.0",
     "@vitejs/plugin-react": "^6.1.1",
@@ -23,6 +24,7 @@
     "@capacitor/android": "^8.5.0",
     "@capacitor/camera": "^8.2.6",
     "@capacitor/local-notifications": "^8.3.1",
+    "@capacitor/splash-screen": "^8.0.2",
     "@supabase/supabase-js": "^2.118.0",
     "react": "^19.3.0",
     "react-dom": "^19.3.0"
